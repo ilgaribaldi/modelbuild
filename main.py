@@ -17,16 +17,15 @@ def main():
     )
     feature_builder.build_features(
         feature_extractors=river_flow_feature_extractors,
-        windows=[1, 2, 3, 4, 5, 10, 15, 20, 25, 30],
-        lags=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        windows=[1, 2],
+        lags=[1, 2],
         autoregressive=False
     )
     print(feature_builder.df)
 
-    # feature_builder.get_top_features(amount=200)
-    # feature_builder.get_random_feature_sets(amount=10, max_features=400, min_features=100)
-    feature_builder.get_top_features(amount=500)
-    feature_builder.build_top_feature_sets(amount=300)
+    # feature_builder.get_top_features(amount=500)
+    feature_builder.get_random_feature_sets(amount=100, max_features=600, min_features=100)
+    # feature_builder.build_feature_sets(amount=500)
 
     model_builder = ModelBuilder(
         df=feature_builder.df,

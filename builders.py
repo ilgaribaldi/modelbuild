@@ -21,17 +21,11 @@ class FeatureBuilder:
     def __init__(self, df, target, verbose=False):
         self.df = df
         self.target = target
+        self.features = None
         self.feature_sets = []
-        self.top_features = None
         self.verbose = verbose
 
-    def build_features(
-            self,
-            feature_extractors,
-            autoregressive=False,
-            lags=None,
-            windows=None,
-    ):
+    def build_features(self, feature_extractors, autoregressive=False, lags=None, windows=None,):
         with warnings.catch_warnings():
             warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
             warnings.simplefilter(action='ignore', category=PerformanceWarning)
@@ -53,6 +47,9 @@ class FeatureBuilder:
 
                 feature_extractor(**kwargs)
 
+    def set_features(self, features):
+        self.features = features
+
     def get_random_feature_sets(self, amount, max_features, min_features=1):
         self.feature_sets = []
         features = [col for col in self.df.columns if col != self.target]
@@ -66,16 +63,22 @@ class FeatureBuilder:
         correlation_matrix = self.df.corr(method='pearson')
         correlations = correlation_matrix[self.target].drop(self.target)
         sorted_correlations = sorted(correlations.items(), key=lambda x: abs(x[1]), reverse=True)
-        self.top_features = [feature for feature, correlation in sorted_correlations[:amount]]
-        self.df = self.df[self.top_features + [self.target]]
+        self.features = [feature for feature, correlation in sorted_correlations[:amount]]
+        self.df = self.df[self.features + [self.target]]
 
-    def build_top_feature_sets(self, amount):
+    def build_feature_sets(self, amount, random_size=False):
         self.feature_sets = []
-        if self.top_features is None:
+        if self.features is None:
             self.get_top_features(amount)
-        feature_sets = []
-        for i in range(amount):
-            self.feature_sets.append(self.top_features[:i + 1])
+
+        if random_size:
+            for _ in range(amount):
+                random_subset_size = random.randint(1, len(self.features))
+                random_subset = random.sample(self.features, random_subset_size)
+                self.feature_sets.append(random_subset)
+        else:
+            for i in range(amount):
+                self.feature_sets.append(self.features[:i + 1])
 
 
 class ModelBuilder:

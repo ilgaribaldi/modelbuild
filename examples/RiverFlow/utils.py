@@ -1,6 +1,8 @@
 import pandas as pd
 import pickle
 import numpy as np
+import warnings
+from pandas.errors import SettingWithCopyWarning, PerformanceWarning
 
 # ----------------------------- data Initialization -------------------------- #
 
@@ -41,114 +43,120 @@ def extract_next_day_flow(df):
     return df
 
 
-# ------------------------------ Normal features ----------------------------- #
+# ---------------------------------- Features -------------------------------- #
 
 
-def extract_total_daily_precipitation(df):
+def add_total_daily_precipitation(df):
     precipitation_columns = [f"p_{i}" for i in range(9)]
-    df["total_daily_p"] = df[precipitation_columns].sum(axis=1)
-    df.dropna(inplace=True)
+    df["tdp"] = df[precipitation_columns].sum(axis=1)
+    return df
 
 
-def extract_statistics(df):
-    precipitation_columns = [f"p_{i}" for i in range(9)]
-    temperature_columns = [f"t_{i}" for i in range(9)]
-
-    df[f"mean_p"] = df[precipitation_columns].mean(axis=1)
-    df[f"min_p"] = df[precipitation_columns].min(axis=1)
-    df[f"max_p"] = df[precipitation_columns].max(axis=1)
-    df[f"std_p"] = df[precipitation_columns].std(axis=1)
-
-    df[f"mean_t"] = df[temperature_columns].mean(axis=1)
-    df[f"min_t"] = df[temperature_columns].min(axis=1)
-    df[f"max_t"] = df[temperature_columns].max(axis=1)
-    df[f"std_t"] = df[temperature_columns].std(axis=1)
-
-    df.dropna(inplace=True)
-
-
-def extract_aggregated_statistics(df, windows):
+def add_statistical_features(df):
     precipitation_columns = [f"p_{i}" for i in range(9)]
     temperature_columns = [f"t_{i}" for i in range(9)]
 
-    stats_map = {
-        "mean": lambda x: x.mean(),
-        "min": lambda x: x.min(),
-        "max": lambda x: x.max(),
-        "std": lambda x: x.std()
-    }
+    # statistical features for precipitation
+    df[f"1d_mean_precipitation"] = df[precipitation_columns].mean(axis=1)
+    df[f"1d_min_precipitation"] = df[precipitation_columns].min(axis=1)
+    df[f"1d_max_precipitation"] = df[precipitation_columns].max(axis=1)
+    df[f"1d_std_precipitation"] = df[precipitation_columns].std(axis=1)
 
-    for window in windows:
-        df[f"{window}daily_cumulative_p"] = (
-            df[precipitation_columns].rolling(window=window).sum().sum(axis=1)
-        )
-        for stat, func in stats_map.items():
-            df[f"{window}d_{stat}_precipitation"] = (
-                df[precipitation_columns].rolling(window=window).apply(func, raw=True).sum(axis=1)
+    # statistical features for temperature
+    df[f"1d_mean_temperature"] = df[temperature_columns].mean(axis=1)
+    df[f"1d_min_temperature"] = df[temperature_columns].min(axis=1)
+    df[f"1d_max_temperature"] = df[temperature_columns].max(axis=1)
+    df[f"1d_std_temperature"] = df[temperature_columns].std(axis=1)
+
+    df.dropna(inplace=True)
+    return df
+
+
+def add_aggregated_statistical_features(df, windows):
+    precipitation_columns = [f"p_{i}" for i in range(9)]
+    temperature_columns = [f"t_{i}" for i in range(9)]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
+
+        stats_map = {
+            "mean": lambda x: x.mean(),
+            "min": lambda x: x.min(),
+            "max": lambda x: x.max(),
+            "std": lambda x: x.std()
+        }
+
+        for window in windows:
+            # Aggregated cumulative feature for precipitation
+            df[f"{window}d_cumulative_precipitation"] = (
+                df[precipitation_columns].rolling(window=window).sum().sum(axis=1)
             )
-            df[f"{window}d_{stat}_temperature"] = (
-                df[temperature_columns].rolling(window=window).apply(func, raw=True).mean(axis=1)
-            )
+            for stat, func in stats_map.items():
+                df[f"{window}d_{stat}_precipitation"] = (
+                    df[precipitation_columns].rolling(window=window).apply(func, raw=True).sum(axis=1)
+                )
+                df[f"{window}d_{stat}_temperature"] = (
+                    df[temperature_columns].rolling(window=window).apply(func, raw=True).mean(axis=1)
+                )
+    df.dropna(inplace=True)
+    return df
 
 
-def extract_rate_of_changes(df):
+def add_rate_of_change_features(df, windows):
     for i in range(9):
         df[f"delta_p_{i}"] = df[f"p_{i}"].diff()
         df[f"delta_t_{i}"] = df[f"t_{i}"].diff()
 
-    if "total_daily_p" in df.columns:
-        df["delta_total_daily_p"] = df["total_daily_p"].diff()
-
-
-def extract_lagged_features(df, lags):
-    original_features = [f"t_{i}" for i in range(9)] + [f"p_{i}" for i in range(9)]
-
-    for lag in lags:
-        for original_feature in original_features:
-            df[f"lag({original_feature},{lag})"] = df[original_feature].shift(lag)
-
-    df.dropna(inplace=True)
-
-
-def extract_lagged_statistical_features(df, lags):
-    statistical_features = [
-        "mean_p", "min_p", "max_p", "std_p",
-        "mean_t", "min_t", "max_t", "std_t"
-    ]
-
-    for lag in lags:
-        for stat_feature in statistical_features:
-            df[f"lag({stat_feature},{lag})"] = df[stat_feature].shift(lag)
-
-    df.dropna(inplace=True)
-
-
-def extract_lagged_aggregated_statistical_features(df, windows, lags):
-    aggregated_statistical_features = []
+    df["delta_tdp"] = df["tdp"].diff()
 
     for window in windows:
-        aggregated_statistical_features.append(f"{window}daily_cumulative_p")
-        for stat in ["mean", "min", "max", "std"]:
-            aggregated_statistical_features.append(f"{window}d_{stat}_precipitation")
-            aggregated_statistical_features.append(f"{window}d_{stat}_temperature")
-
-    for lag in lags:
-        for agg_stat_feature in aggregated_statistical_features:
-            df[f"lag({agg_stat_feature},{lag})"] = df[agg_stat_feature].shift(lag)
-
+        df[f"{window}d_delta_mean_temperature"] = (
+            df[f"{window}d_mean_temperature"].diff()
+        )
     df.dropna(inplace=True)
+    return df
 
 
-def extract_interactions(df):
+def add_interaction_features(df, windows):
     precipitation_columns = [f"p_{i}" for i in range(9)]
     temperature_columns = [f"t_{i}" for i in range(9)]
 
-    for p_col in precipitation_columns:
+    for i, p_col in enumerate(precipitation_columns):
         for t_col in temperature_columns:
             df[f"interaction_{p_col}_{t_col}"] = df[p_col] * df[t_col]
 
+    for window in windows:
+        df[f"interaction_tdp_{window}d_mean_temperature"] = (
+                df["tdp"] * df[f"{window}d_mean_temperature"]
+        )
+    df.dropna(inplace=True)
+    return df
 
-def extract_seasonality_features(df):
+
+def add_lagged_features(df, windows, lags):
+    aggregated_statistical_features = []
+
+    for window in windows:
+        aggregated_statistical_features.extend([
+            f"{window}d_cumulative_precipitation",
+            f"{window}d_mean_precipitation",
+            f"{window}d_min_precipitation",
+            f"{window}d_max_precipitation",
+            f"{window}d_std_precipitation",
+            f"{window}d_mean_temperature",
+            f"{window}d_min_temperature",
+            f"{window}d_max_temperature",
+            f"{window}d_std_temperature",
+        ])
+
+    for lag in lags:
+        for aggr_stat_feature in aggregated_statistical_features:
+            df[f"lag({aggr_stat_feature},{lag})"] = df[aggr_stat_feature].shift(lag)
+    df.dropna(inplace=True)
+    return df
+
+
+def add_seasonality_features(df):
     df['day_of_year'] = df.index.dayofyear
     df['day_of_year_sin'] = np.sin(2 * np.pi * df['day_of_year'] / 365)
     df['day_of_year_cos'] = np.cos(2 * np.pi * df['day_of_year'] / 365)
@@ -156,56 +164,71 @@ def extract_seasonality_features(df):
     df['month_sin'] = np.sin(2 * np.pi * df['month'] / 12)
     df['month_cos'] = np.cos(2 * np.pi * df['month'] / 12)
     df.dropna(inplace=True)
+    return df
 
 
-# -------------------------- Autoregressive features -------------------------- #
+# ------------------------- Autoregressive Features -------------------------- #
 
 
 def keep_flow(df, autoregressive):
     if not autoregressive:
         df.drop(columns=["flow"], inplace=True)
+    return df
 
 
-def extract_lagged_flow(df, autoregressive, lags):
+def add_aggregated_autoregressive_features(df, autoregressive, windows):
     if autoregressive:
-        for lag in lags:
-            df[f"lag(flow,{lag})"] = df["flow"].shift(lag)
-        df.dropna(inplace=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
 
+            stats_map = {
+                "mean": lambda x: x.mean(),
+                "min": lambda x: x.min(),
+                "max": lambda x: x.max(),
+                "std": lambda x: x.std()
+            }
 
-def extract_mean_flow(df, autoregressive, windows):
-    if autoregressive:
-        stats_map = {
-            "mean": lambda x: x.mean(),
-            "min": lambda x: x.min(),
-            "max": lambda x: x.max(),
-            "std": lambda x: x.std()
-        }
-        for stat, func in stats_map.items():
             for window in windows:
-                df[f"{window}d_{stat}_flow"] = (
-                    df["flow"].rolling(window=window).apply(func, raw=True)
-                )
-        df.dropna(inplace=True)
+                for stat, func in stats_map.items():
+                    # Aggregated statistical features for flow
+                    df[f"{window}d_{stat}_flow"] = (
+                        df["flow"].rolling(window=window).apply(func, raw=True)
+                    )
+    return df
 
 
-# ----------------------------------------------------------------------------- #
+def add_lagged_autoregressive_features(df, autoregressive, windows, lags):
+    if autoregressive:
+        aggregated_autoregressive_features = []
+
+        for window in windows:
+            aggregated_autoregressive_features.append(f"{window}d_mean_flow")
+
+        for lag in lags:
+            for aggr_ar_feature in aggregated_autoregressive_features:
+                df[f"lag({aggr_ar_feature},{lag})"] = df[aggr_ar_feature].shift(lag)
+
+            df[f"lag(flow,{lag})"] = df["flow"].shift(lag)
+
+    df.dropna(inplace=True)
+    return df
+
+
+# ---------------------------------------------------------------------------- #
 
 
 river_flow_feature_extractors = [
     extract_next_day_flow,
-    extract_total_daily_precipitation,
-    extract_statistics,
-    extract_aggregated_statistics,
-    extract_rate_of_changes,
-    extract_lagged_features,
-    extract_lagged_statistical_features,
-    extract_lagged_aggregated_statistical_features,
-    extract_interactions,
-    extract_seasonality_features,
+    add_total_daily_precipitation,
+    add_statistical_features,
+    add_aggregated_statistical_features,
+    add_rate_of_change_features,
+    add_lagged_features,
+    add_interaction_features,
+    add_seasonality_features,
     keep_flow,
-    extract_lagged_flow,
-    extract_mean_flow,
+    add_aggregated_autoregressive_features,
+    add_lagged_autoregressive_features,
 ]
 
 
