@@ -2,48 +2,10 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import pandas as pd
 import pprint as pp
-from utils.feature_builder import load_data, create_dataframe
 import os
+import math
 
 print(os.cpu_count())
-
-data = load_data('data/data.pkl')
-df = create_dataframe(data)
-
-
-def test_model(df):
-    # Lag the "flow" variable by one day
-    df['flow_lagged'] = df['flow'].shift(1)
-
-    # Remove the first row, which will have a NaN value for the lagged "flow"
-    df = df.iloc[1:, :]
-
-    # Split the data into training and testing sets
-    cutoff_index = int(len(df) * (1 - 0.3))
-    train_data = df.iloc[:cutoff_index, :]
-    test_data = df.iloc[cutoff_index:, :]
-
-    # Define the input features and target variable
-    input_features = ['flow_lagged']
-    target = 'flow'
-
-    # Fit a GradientBoostingRegressor to the training data
-    model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=0)
-    model.fit(train_data[input_features], train_data[target])
-
-    # Use the model to make predictions on the testing data
-    test_predictions = model.predict(test_data[input_features])
-
-    # Calculate evaluation metrics
-    mae = mean_absolute_error(test_data[target], test_predictions)
-    mse = mean_squared_error(test_data[target], test_predictions)
-    rmse = mean_squared_error(test_data[target], test_predictions, squared=False)
-    r2 = r2_score(test_data[target], test_predictions)
-
-    print(f"MAE: {mae:.2f}")
-    print(f"MSE: {mse:.2f}")
-    print(f"RMSE: {rmse:.2f}")
-    print(f"R^2: {r2:.2f}")
 
 
 feature_importances = {'10d_cumulative_precipitation': 0.0153851716676228,
@@ -406,4 +368,6 @@ def get_top_n_features(feature_importances, n):
 
 x = get_top_n_features(feature_importances, 50)
 
-test_model(df)
+month = 2
+cosine_month = math.cos(2 * math.pi * month / 12)
+print(cosine_month)
