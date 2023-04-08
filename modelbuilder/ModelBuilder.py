@@ -366,12 +366,12 @@ class ModelBuilder:
             json.dump(existing_models, f, indent=4)
             print(f"{self.model_data['type']} model with {len(self.model_data['features'])} features SAVED.")
 
-    def save_predictions(self):
+    def save_predictions(self, file):
         y_pred_test = pd.Series(self.y_pred_test, index=self.y_test.index, name="predicted")
         lower_bound = pd.Series(self.lower_bound, index=self.y_test.index, name="lower_bound")
         upper_bound = pd.Series(self.upper_bound, index=self.y_test.index, name="upper_bound")
         prediction_df = pd.concat([self.y_test, y_pred_test, lower_bound, upper_bound], axis=1)
-        prediction_df.to_parquet('predictions.parquet', index=True)
+        prediction_df.to_parquet(file, index=True)
 
     def build_model(self, features, test_size, **kwargs):
         """

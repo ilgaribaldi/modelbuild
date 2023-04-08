@@ -42,12 +42,12 @@ def main():
         target=feature_builder.target,
         model_type="GradientBoostingRegressor",
         autoregressive=False,
-        random_seed=6
+        random_seed=7
     )
 
     # Build and export models to json
     model_builder.export_models(
-        file="models.json",
+        file="data/models.json",
         test_size=0.3,
         feature_sets=feature_builder.feature_sets,
         verbose=False,
