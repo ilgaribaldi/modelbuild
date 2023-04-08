@@ -1,6 +1,7 @@
 import pprint as pp
 import json
-from modelbuilder.builders import FeatureBuilder, ModelBuilder
+from modelbuilder.FeatureBuilder import FeatureBuilder
+from modelbuilder.ModelBuilder import ModelBuilder
 from datasets.RiverFlow.utils import (
     load_river_flow_data,
     create_river_flow_dataframe,
@@ -33,11 +34,9 @@ def main():
 
     model = get_best_model(
         file="models.json",
-        model_type="GradientBoostingRegressor",
-        autoregressive=True,
+        model_type="RandomForestRegressor",
+        autoregressive=False,
     )
-
-    pp.pprint(model)
 
     data = load_river_flow_data("../datasets/RiverFlow/data.pkl")
     df = create_river_flow_dataframe(data)
@@ -48,15 +47,15 @@ def main():
     )
 
     # Based on experiment, these are the necessary windows and lags to build the best models
-    normal_windows = [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 60, 90, 365]
-    normal_lags = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    autoregressive_windows = [7]
+    normal_windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30, 60, 90, 365]
+    normal_lags = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30, 60, 90, 365]
+    autoregressive_windows = [1, 2, 3, 4, 5, 7]
     autoregressive_lags = [1, 2]
 
     feature_builder.build_features(
         feature_extractors=river_flow_feature_extractors,
-        windows=autoregressive_windows,
-        lags=autoregressive_lags,
+        windows=normal_windows,
+        lags=normal_lags,
         autoregressive=model["autoregressive"]
     )
 
@@ -70,7 +69,7 @@ def main():
 
     features = model["features"]
     _, model_data = model_builder.build_model(features=features, test_size=0.3)
-    model_builder.validate_model(n_splits=[3, 5, 10])
+    model_builder.validate_model(n_splits=[3])
     pp.pprint(model_data)
 
     model_builder.save_predictions()

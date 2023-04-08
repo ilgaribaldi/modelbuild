@@ -1,6 +1,10 @@
 import pandas as pd
 import pickle
 import numpy as np
+import time
+import concurrent.futures
+
+
 
 # ---------------------------- data Initialization --------------------------- #
 
@@ -209,6 +213,23 @@ def extract_lagged_autoregressive_features(df, autoregressive, windows, lags):
 
 # ---------------------------------------------------------------------------- #
 
+def add_features(df, lags):
+    precipitation_columns = [f"p_{i}" for i in range(9)]
+    temperature_columns = [f"t_{i}" for i in range(9)]
+    df["30d_average_precipitation"] = df[precipitation_columns].rolling(window=30).mean().mean(axis=1)
+    df["30d_average_temperature"] = df[temperature_columns].rolling(window=30).mean().mean(axis=1)
+    df.drop(columns=precipitation_columns + temperature_columns, inplace=True)
+
+    df = extract_next_day_flow(df)
+    df.drop(columns=['flow'], inplace=True)
+
+    for lag in lags:
+        df[f"lag('30d_average_precipitation',{lag})"] = df['30d_average_precipitation'].shift(lag)
+        df[f"lag('30d_average_temperature',{lag})"] = df['30d_average_temperature'].shift(lag)
+
+    df.dropna(inplace=True)
+    return df
+
 
 river_flow_feature_extractors = [
     extract_next_day_flow,
@@ -222,5 +243,8 @@ river_flow_feature_extractors = [
     extract_autoregressive_aggregated_statistics,
     extract_lagged_autoregressive_features,
 ]
+
+
+
 
 
