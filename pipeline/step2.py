@@ -34,7 +34,7 @@ def main():
 
     model = get_best_model(
         file="models.json",
-        model_type="RandomForestRegressor",
+        model_type="GradientBoostingRegressor",
         autoregressive=False,
     )
 
