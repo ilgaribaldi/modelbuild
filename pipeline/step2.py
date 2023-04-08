@@ -1,5 +1,6 @@
 import pprint as pp
 import json
+import pandas as pd
 from modelbuilder.FeatureBuilder import FeatureBuilder
 from modelbuilder.ModelBuilder import ModelBuilder
 from datasets.RiverFlow.utils import (
@@ -33,13 +34,14 @@ def main():
     """
 
     model = get_best_model(
-        file="models.json",
+        file="data/models.json",
         model_type="GradientBoostingRegressor",
         autoregressive=False,
     )
 
     data = load_river_flow_data("../datasets/RiverFlow/data.pkl")
     df = create_river_flow_dataframe(data)
+    # df = pd.read_parquet('data/data_with_features.parquet')  # pre-computed df
 
     feature_builder = FeatureBuilder(
         df=df,
@@ -51,7 +53,7 @@ def main():
     normal_lags = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30, 60, 90, 365]
     autoregressive_windows = [1, 2, 3, 4, 5, 7]
     autoregressive_lags = [1, 2]
-
+    
     feature_builder.build_features(
         feature_extractors=river_flow_feature_extractors,
         windows=normal_windows,
@@ -72,7 +74,7 @@ def main():
     model_builder.validate_model(n_splits=[3])
     pp.pprint(model_data)
 
-    model_builder.save_predictions()
+    model_builder.save_predictions(file='data/predictions.parquet')
 
 
 if __name__ == '__main__':

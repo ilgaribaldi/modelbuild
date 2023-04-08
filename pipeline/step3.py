@@ -48,7 +48,7 @@ def main():
     """
 
     # Load predictions, observed values, upper & lower bount
-    df = pd.read_parquet('predictions.parquet')
+    df = pd.read_parquet('data/predictions.parquet')
     df = df.rename(columns={'next_day_flow': 'observed'})
 
     # calculate metrics by year
