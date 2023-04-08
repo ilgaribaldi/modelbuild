@@ -41,14 +41,13 @@ def main():
 
     data = load_river_flow_data("../datasets/RiverFlow/data.pkl")
     df = create_river_flow_dataframe(data)
-    df = pd.read_parquet('data/data_with_features.parquet')  # pre-computed df
+    # df = pd.read_parquet('data/data_with_features.parquet')  # pre-computed df
 
     feature_builder = FeatureBuilder(
         df=df,
         target="next_day_flow",
     )
 
-    '''
     # Based on experiment, these are the necessary windows and lags to build the best models
     normal_windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30, 60, 90, 365]
     normal_lags = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30, 60, 90, 365]
@@ -61,7 +60,6 @@ def main():
         lags=normal_lags,
         autoregressive=model["autoregressive"]
     )
-    '''
 
     model_builder = ModelBuilder(
         df=feature_builder.df,

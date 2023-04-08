@@ -28,8 +28,8 @@ def main():
     # build features based on specified feature extractors, lags, and windows.
     feature_builder.build_features(
         feature_extractors=river_flow_feature_extractors,
-        lags=[5, 10, 15, 30],
-        windows=[1, 2, 3, 4, 5],
+        lags=[1, 2, 3, 4, 5],
+        windows=[5, 10, 15, 30],
         autoregressive=False
     )
 
@@ -42,7 +42,7 @@ def main():
         target=feature_builder.target,
         model_type="GradientBoostingRegressor",
         autoregressive=False,
-        random_seed=7
+        random_seed=8
     )
 
     # Build and export models to json
