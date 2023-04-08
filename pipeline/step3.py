@@ -58,8 +58,8 @@ def main():
     # plot comparisons
     plot_timeseries(
             df=df,
-            lower_bound='2002-01-01',
-            higher_bound='2002-12-31',
+            lower_bound='2000-01-01',
+            higher_bound='2010-12-31',
             columns=['observed', 'predicted'],  # ['observed', 'predicted', 'lower_bound', 'upper_bound']
             normalize=False
         )

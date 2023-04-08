@@ -1,8 +1,11 @@
-from modelbuilder.builders import FeatureBuilder, ModelBuilder
+from modelbuilder.ModelBuilder import ModelBuilder
+from modelbuilder.FeatureBuilder import FeatureBuilder
 from datasets.RiverFlow.utils import (
     load_river_flow_data,
     create_river_flow_dataframe,
     river_flow_feature_extractors,
+    extract_next_day_flow,
+    add_features,
 )
 
 
@@ -25,16 +28,13 @@ def main():
     # build features based on specified feature extractors, lags, and windows.
     feature_builder.build_features(
         feature_extractors=river_flow_feature_extractors,
-        lags=[1, 2, 3],
-        windows=[5, 10, 15, 30],
+        lags=[5, 10, 15, 30],
+        windows=[1, 2, 3, 4, 5],
         autoregressive=False
     )
 
-    # Get the top features based on Pearson's correlation coefficient
-    feature_builder.get_top_features(amount=200)
-
-    # Generate feature sets in incremental order
-    feature_builder.build_feature_sets(amount=200, random_size=False)
+    feature_builder.get_top_features(amount=50)
+    feature_builder.build_feature_sets(amount=20, random_size=False)
 
     # Initialize ModelBuilder Instance
     model_builder = ModelBuilder(
@@ -42,7 +42,7 @@ def main():
         target=feature_builder.target,
         model_type="GradientBoostingRegressor",
         autoregressive=False,
-        random_seed=4
+        random_seed=6
     )
 
     # Build and export models to json
